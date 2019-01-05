@@ -1,0 +1,10 @@
+.settings/
+.cproject
+.project
+.mxproject
+Nfc_sacy.elf.launch
+mx.scratch
+STM32F429ZI_FLASH.Id
+STM32F429ZI_FLASH.ld
+startup/
+/Debug/
