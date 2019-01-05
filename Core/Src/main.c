@@ -164,19 +164,23 @@ int main(void)
 
   BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
 
-  BSP_LCD_DisplayStringAtLine(1,(uint8_t*)"PROJEKT SACY");
-  BSP_LCD_DisplayStringAtLine(2,(uint8_t*)"NFC NTAG + STM32");
+  BSP_LCD_DisplayStringAtLine(0,(uint8_t*)" NTAG  READER");
+  BSP_LCD_DisplayStringAtLine(12,(uint8_t*)"Nfc: Missing  ");
 
   uint8_t data[16];
   uint8_t mes[50];
   uint8_t sizea;
-  uint8_t dummy = 0;
+  uint8_t status = 0;
 
   //HAL_I2C_Mem_Read(&hi2c3, 0b10101010, 0x00, 3, &data, 3, 100);
-  HAL_I2C_Mem_Read(&hi2c3, 0xAA, 0x03, 1, data, 16, 1000);
+  status = HAL_I2C_Mem_Read(&hi2c3, 0xAA, 0x00, 1, data, 16, 1000);
+  HAL_I2C_Mem_Write(&hi2c3, 0xAA, 0x20, 1, data, 16, 1000);
+  sizea = sprintf(mes, "Status: %d\n", status);
+   HAL_UART_Transmit(&huart1, mes, sizea, 100);
+   HAL_Delay(100);
 
-  	 for (int i = 1; i < 4; i++) {
-  		 sizea = sprintf(mes, "%c%c%c%c", data[0+4*i], data[1+4*i], data[2+4*i], data[3+4*i]);
+  	 for (int i = 0; i < 4; i++) {
+  		 sizea = sprintf(mes, "%x-%x-%x-%x\n", data[0+4*i], data[1+4*i], data[2+4*i], data[3+4*i]);
   		 HAL_UART_Transmit(&huart1, mes, sizea, 100);
   		 HAL_Delay(100);
   	 }
@@ -191,8 +195,8 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-	  //HAL_UART_Transmit(&huart1, (uint8_t*) "Test123\n", 8,100);
-	  HAL_Delay(200);
+	  if (HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_2) == 0) BSP_LCD_DisplayStringAtLine(12,(uint8_t*)"Nfc: In range  ");
+	  else BSP_LCD_DisplayStringAtLine(12,(uint8_t*)"Nfc: Missing  ");
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -581,13 +585,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOE_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOF_CLK_ENABLE();
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOG_CLK_ENABLE();
-  __HAL_RCC_GPIOE_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
@@ -601,6 +605,12 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOG, LD3_Pin|LD4_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : PE2 */
+  GPIO_InitStruct.Pin = GPIO_PIN_2;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
   /*Configure GPIO pins : NCS_MEMS_SPI_Pin CSX_Pin OTG_FS_PSO_Pin */
   GPIO_InitStruct.Pin = NCS_MEMS_SPI_Pin|CSX_Pin|OTG_FS_PSO_Pin;
