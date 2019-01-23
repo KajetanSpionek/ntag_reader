@@ -50,6 +50,9 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "lcd.h"
+#include "util.h"
+#include "touch.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -151,43 +154,17 @@ int main(void)
   MX_I2C3_Init();
   /* USER CODE BEGIN 2 */
 
-  // LCD stuff
+  // LCD Init
+  lcd_Init();
+  lcd_DisplayHeader();
+  lcd_Menu();
 
-  BSP_LCD_Init();
-  BSP_TS_Init(240, 360);
-
-  BSP_LCD_LayerDefaultInit(LCD_BACKGROUND_LAYER, LCD_FRAME_BUFFER);
-  BSP_LCD_LayerDefaultInit(LCD_FOREGROUND_LAYER, LCD_FRAME_BUFFER);
-  BSP_LCD_SelectLayer(LCD_FOREGROUND_LAYER);
-  BSP_LCD_DisplayOn();
-  BSP_LCD_Clear(LCD_COLOR_WHITE);
-
-  BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
-
-  BSP_LCD_DisplayStringAtLine(0,(uint8_t*)" NTAG  READER");
-  BSP_LCD_DisplayStringAtLine(12,(uint8_t*)"Nfc: Missing  ");
-
-  uint8_t data[16];
-  uint8_t mes[50];
-  uint8_t sizea;
+  uint32_t x = 0;
+  uint32_t y = 0;
   uint8_t status = 0;
+  uint8_t last = 0;
 
-  //HAL_I2C_Mem_Read(&hi2c3, 0b10101010, 0x00, 3, &data, 3, 100);
-  status = HAL_I2C_Mem_Read(&hi2c3, 0xAA, 0x00, 1, data, 16, 1000);
-  HAL_I2C_Mem_Write(&hi2c3, 0xAA, 0x20, 1, data, 16, 1000);
-  sizea = sprintf(mes, "Status: %d\n", status);
-   HAL_UART_Transmit(&huart1, mes, sizea, 100);
-   HAL_Delay(100);
 
-  	 for (int i = 0; i < 4; i++) {
-  		 sizea = sprintf(mes, "%x-%x-%x-%x\n", data[0+4*i], data[1+4*i], data[2+4*i], data[3+4*i]);
-  		 HAL_UART_Transmit(&huart1, mes, sizea, 100);
-  		 HAL_Delay(100);
-  	 }
-
-  //sizea = sprintf(mes, "---------------------------------------%x\n\r", dummy);
-  //HAL_UART_Transmit(&huart1, mes, sizea, 100);
-  //HAL_Delay(100);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -195,8 +172,41 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-	  if (HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_2) == 0) BSP_LCD_DisplayStringAtLine(12,(uint8_t*)"Nfc: In range  ");
-	  else BSP_LCD_DisplayStringAtLine(12,(uint8_t*)"Nfc: Missing  ");
+	  switch(status) {
+	  case 1:
+		  if (last == 0x00) lcd_ClearScreen();
+		  last = 1;
+		  HAL_Delay(50);	// anty-double click
+		  lcd_info();
+		  t_TouchDetect(&x, &y);
+		  if (t_BoxMenu(x,y) < 0x05) {
+			  lcd_Menu();
+			  status = 0;
+		  }
+		  break;
+	  case 2:
+		  last = 2;
+		  write_value();
+		  HAL_Delay(50);	// anty-double click
+		  status = 0;
+		  lcd_Menu();
+		  break;
+	  case 3:
+		  HAL_Delay(50);	// anty-double click
+		  last = 3;
+		  clean_mem();
+		  status = 0;
+		  lcd_Menu();
+		  break;
+	  default:
+		  last = 0;
+		  lcd_DisplayHeader();
+		  lcd_DisplayFDStatus();
+		  t_TouchDetect(&x, &y);
+		  status = t_BoxMenu(x,y);
+		  break;
+	  }
+
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
